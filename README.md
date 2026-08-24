@@ -58,11 +58,11 @@ cd Network-IDS-LogAnalysis
 2. **Set Up a Virtual Environment**
 python -m venv ids-env
 
-# On Linux / macOS:
-source ids-env/bin/activate
-
-# On Windows:
-ids-env\Scripts\activate
+    ### On Linux / macOS:
+    source ids-env/bin/activate
+    
+    ### On Windows:
+    ids-env\Scripts\activate
 
 3. **Install Dependencies**
 pip install -r requirements.txt
