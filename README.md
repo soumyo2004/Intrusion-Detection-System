@@ -1,63 +1,75 @@
-# Intrusion Detection System
+# Network Intrusion Detection System (IDS) Using Machine Learning & Ensemble Methods
 
-Due to the advancement in technology and digitization of information, there has been an increase in network data traffic. This also brings in the scope of increased network attacks and poses a threat to computer systems and data. The vulnerabilities in network security seem to increase in direct proportion with the use of the internet. Intrusion Detection Systems prove to be an effective method to detect unauthorized access and attacks in a network and safeguard it from intruders. In this project, we use the [KDD dataset](http://kdd.ics.uci.edu/databases/kddcup99/kddcup99.html) to develop an intrusion detection system using machine learning algorithms and ensemble techniques. The dataset is first preprocessed to obtain clean and non-redundant data which is then tested against an ensemble model involving three classifiers namely Gaussian Naive Bayes, Decision Tree, and XGBoost.
+Due to exponential growth in network traffic and increasingly sophisticated cyber threats, modern networks face serious security vulnerabilities. 
+Traditional Intrusion Detection Systems (IDS) rely on signature-based detection (which misses zero-day attacks and novel patterns) or standalone anomaly-based approaches (which suffer from high false positive rates).
 
-The goal is to build an IDS to classify attacks as malicious or normal connections. Here is the entire implementation in four steps:- 
-- Load the dataset and apply pre-processing.
-- Perform Exploratory Data Analysis on the dataset.
-- Train and test following classifiers - Decision Tree, Gaussian Naive Bayes, XGBoost.
-- Make predictions using ensemble techniques.
+This project implements an automated, machine learning-driven IDS for network log analysis. To overcome severe data redundancy and overfitting seen in legacy benchmarks like KDD Cup '99 (which artificially inflated accuracy through ~70% duplicate records), this pipeline transitions to the modern **[UNSW-NB15 dataset](https://research.unsw.edu.au/projects/unsw-nb15-dataset)**. The architecture utilizes a **Weighted Soft-Voting Ensemble Classifier** combining **Decision Tree**, **Random Forest**, and **XGBoost** to achieve multi-class classification across 10 network traffic categories (Normal + 9 distinct attack types).
 
-![Methodology](https://user-images.githubusercontent.com/47852407/118237126-901f1080-b4b4-11eb-8ddd-a00945caa5e8.png)
+---
 
-# Steps Involved
+### Project Workflow
 
-### Preprocessing
-This step includes data integration, data reduction through feature and instance selections, data transformation by converting symbolic features to numeric and class to nominal), data cleaning to remove outlier and extreme values. Also, the dataset had all types of forms: continuous, discrete, and symbolic with varied
-ranges and resolutions, most of which cannot be processed by a pattern classification method, hence preprocessing of data was necessary before we could build a classification model.
+1. **Data Preprocessing & Cleaning:** Handle missing values, encode multi-class attack categories, and log-transform skewed bit-rate features.
+2. **Feature Scaling & Engineering:** Standardize continuous features via `StandardScaler` and extract top predictive attributes.
+3. **Model Training:** Train three distinct supervised classifiers:
+   * **Decision Tree** (with depth constraints and balanced class weights)
+   * **Random Forest** (ensemble of 100 estimators using parallel CPU cores)
+   * **XGBoost** (histogram-based boosting via `tree_method='hist'` for low-latency fitting)
+4. **Weighted Soft Voting:** Aggregate class probability vectors using an empirical weighting ratio (DT: 1, RF: 2, XGB: 2).
+5. **Performance Diagnostics:** Evaluate model stability and generalization using multi-class confusion matrices, precision/recall breakdowns, and cross-validation learning curves.
 
-### Exploratory data analysis (EDA)
-EDA involves visualizing a dataset to summarize the main characteristics using statistical graphics and other data visualization methods. This provides a deeper understanding of the dataset to extract impartial experiments.
+---
 
-### Building Classifiers
-  #### Decision Tree
-  A decision tree is very much popular as a single classifier because   of its simplicity and easier implementation. It is a classification model that uses a  tree-like structure to perform a decision and is commonly used in operation research and intrusion detection because it gives better performance compared to   other algorithms.
+### Key Methodology & Pipeline
 
-  #### Gaussian Naive Bayes
-  Gaussian Naive Bayes is a variant of Naive Bayes that follows Gaussian normal distribution and supports continuous data. Naive Bayes is a group of supervised machine learning classification algorithms based on the Bayes theorem. It produces good results in the classification where there exist simpler relations.
+#### 1. Preprocessing & Encoding
+* **Categorical Encoding:** `LabelEncoder` is applied across discrete protocol, service, and connection state features (`proto`, `service`, `state`).
+* **Normalization & Scaling:** Continuous network vectors are scaled using `StandardScaler` to ensure uniform weighting across gradient and distance computations.
+* **Handling Class Imbalance:** Extreme sample distribution differences (e.g., high support for Normal and Generic vs. low support for Backdoor, Shellcode, and Worms) are managed using `class_weight='balanced'`.
 
-  #### XGBoost
-  eXtreme gradient boosting (XGBoost) is a boosting technique that is a part of the ensemble-based approach. A sequential decision tree is constructed, which is also called a sequential ensemble technique. This method provides a result that contains bias that is low and high invariance because the model has a better ability to fit the training data.
+#### 2. Base Classifiers
+* **Decision Tree (DT):** Provides transparent baseline decision splits (`max_depth=12`, `min_samples_leaf=25`).
+* **Random Forest (RF):** Reduces model variance through bagging across 100 decision trees (`max_depth=10`, `n_jobs=-1`).
+* **XGBoost (XGB):** Minimizes bias using sequential gradient boosted trees optimized via fast histogram binning (`tree_method='hist'`, `learning_rate=0.1`).
 
-### Classification using ensemble techniques
-Classification of the network traffic data as normal or malicious using Ensemble Learning is a method that combines multiple learners to solve the specific problems to improve the accuracy of classifiers. We will use the max voting method that is generally used for classification problems. In this technique, multiple models are used to make predictions for each data point. The predictions by each model are considered as a ‘vote’. The predictions which we get from the majority of the models are used as the final prediction.
+#### 3. Weighted Soft Voting
+The final prediction assigns weights based on each estimator's individual empirical performance:
 
-# Results
-The results show that an ensemble of Gaussian Naive Bayes + Decision Tree + XGBoost with proper preprocessing activities on KDD 1999 Cup Dataset will
-produce enhanced and more efficient IDS performance with low false positives. Also, the results show that it is possible to have a single and powerful classifier as the XGBoost classifier gives almost equally efficient results as the ensemble model.
+$$\hat{P}(c) = \frac{1 \cdot P_{\text{DT}}(c) + 2 \cdot P_{\text{RF}}(c) + 2 \cdot P_{\text{XGB}}(c)}{5}$$
 
-![Results](https://user-images.githubusercontent.com/47852407/118238271-ed679180-b4b5-11eb-893c-f818fdd33655.png)
+---
 
-# How to use
+### Experimental Results
 
-- Create a virtual environment
-```
-$ pip install virtualenv
-$ virtualenv ids-env
-$ source ids-env/bin/activate
-```
-- Clone this repository
-```
-$ git clone https://github.com/JayantUppal/Intrusion-Detection-System.git
-$ cd Intrusion-Detection-System/
-```
-- Install necessary imports
-```
-$ pip install -r requirements.txt
-```
-- Download dataset from [here](http://kdd.ics.uci.edu/databases/kddcup99/kddcup.data_10_percent.gz). Keep it in the same folder
-- Now, start jupyter notebook using:
-```
-$ jupyter notebook
-```
-- Select 'IDS.ipynb' and you're good to go!
+* **Evaluation Dataset:** UNSW-NB15 (82,332 training records, 175,341 testing records across 45 features).
+* **Multiclass Accuracy:** **76.39%** across 10 classes on the test set.
+* **Weighted Metrics:** **0.79 Precision**, **0.76 Recall**, and **0.75 F1-Score**.
+* **Training Latency:** Fast ensemble fitting completed in **6.09 seconds**.
+* **Generalization:** Successfully eliminated the synthetic memorization of the legacy KDD Cup '99 pipeline, establishing a robust bias-variance trade-off on realistic modern network traffic distributions.
+
+---
+
+### How to Run
+
+1. **Clone the Repository**
+git clone [https://github.com/](https://github.com/)<your-username>/Network-IDS-LogAnalysis.git
+cd Network-IDS-LogAnalysis
+
+2. **Set Up a Virtual Environment**
+python -m venv ids-env
+
+# On Linux / macOS:
+source ids-env/bin/activate
+
+# On Windows:
+ids-env\Scripts\activate
+
+3. **Install Dependencies**
+pip install -r requirements.txt
+
+4. **Dataset Setup**
+Ensure UNSW_NB15_training-set.csv and UNSW_NB15_testing-set.csv are placed in the project root directory.
+
+5. **Run the Notebook**
+   jupyter notebook
+   
